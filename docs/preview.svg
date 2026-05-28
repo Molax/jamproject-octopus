@@ -4,9 +4,9 @@
 
   <defs>
     <radialGradient id="bodyGrad" cx="50%" cy="35%" r="65%">
-      <stop offset="0%"  stop-color="#a48bff"/>
-      <stop offset="60%" stop-color="#7c5cff"/>
-      <stop offset="100%" stop-color="#5a3fcc"/>
+      <stop offset="0%"  stop-color="#ffffff"/>
+      <stop offset="70%" stop-color="#f4f4f8"/>
+      <stop offset="100%" stop-color="#d8d8e0"/>
     </radialGradient>
     <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%"  stop-color="#0d0f1a"/>
@@ -70,16 +70,16 @@
     <g transform="translate(0, 8)">
       <!-- head -->
       <ellipse cx="100" cy="70" rx="46" ry="42" fill="url(#bodyGrad)"/>
+      <!-- subtle rim shadow on the lower half so the white body reads against the dark card -->
+      <ellipse cx="100" cy="84" rx="46" ry="20" fill="#000000" fill-opacity="0.08"/>
       <!-- highlight -->
-      <ellipse cx="100" cy="58" rx="36" ry="14" fill="#ffffff" fill-opacity="0.22"/>
+      <ellipse cx="100" cy="58" rx="36" ry="14" fill="#ffffff" fill-opacity="0.45"/>
 
-      <!-- eyes — "happy" mood -->
-      <circle cx="84" cy="72" r="8" fill="#ffffff"/>
-      <circle cx="116" cy="72" r="8" fill="#ffffff"/>
+      <!-- eyes — "happy" mood (dark pupils on white body, with a tiny gloss) -->
       <circle cx="85" cy="73" r="4" fill="#15151c"/>
       <circle cx="117" cy="73" r="4" fill="#15151c"/>
-      <circle cx="82" cy="69" r="1.4" fill="#ffffff"/>
-      <circle cx="114" cy="69" r="1.4" fill="#ffffff"/>
+      <circle cx="83.5" cy="71.5" r="1.2" fill="#ffffff"/>
+      <circle cx="115.5" cy="71.5" r="1.2" fill="#ffffff"/>
 
       <!-- happy mouth -->
       <path d="M 92 94 Q 100 106 108 94" stroke="#15151c" stroke-width="2.5" stroke-linecap="round" fill="none"/>
