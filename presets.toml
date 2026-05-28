@@ -1,68 +1,161 @@
-# JamProject Octopus — presets de keybinding
-# ============================================================
-# Edita esse arquivo, salva, e abre o app (clique-direito → "Recarregar presets").
-# Nao precisa mexer em codigo nenhum.
+# ════════════════════════════════════════════════════════════════════════════════
+#                  🐙  JAMPROJECT OCTOPUS — KEYBINDING PRESETS  🐙
+# ════════════════════════════════════════════════════════════════════════════════
 #
-# Como funciona:
-#   - [active] active = "<nome do preset>"     escolhe qual preset usar
-#   - [preset.<nome>]                          cada preset tem suas teclas
-#   - keys = ["<tecla1>", "<tecla2>", ...]     uma string por lane, em ordem
-#   - O numero de lanes = quantas strings na lista (entre 4 e 8)
+#  ESSE É O ARQUIVO ONDE VOCÊ CONFIGURA AS TECLAS QUE O POLVO VAI ESCUTAR.
 #
-# Nomes de tecla validos (qualquer letra/digito ou um dos abaixo):
-#   "a" "s" "d" "f" "g" "h" "j" "k" "l" "1" "2" "3" "4" "5" ...
-#   "space"        barra de espaco
-#   "shift"        Shift (qualquer lado)
-#   "ctrl"         Ctrl
-#   "alt"          Alt
-#   "enter"        Enter
-#   "tab"          Tab
-#   "left"  "right"  "up"  "down"     setas
-#   ";" "," "." "/" "'" "[" "]"        simbolos
+#  📝  Como editar:
+#       1. Abre esse arquivo em qualquer editor de texto (Bloco de Notas,
+#          VS Code, Notepad++, nano, vim — qualquer um serve).
+#       2. Edita as linhas que tem `keys = [...]` com as teclas que vc quer,
+#          ou troca o `preset = "..."` lá em cima pra escolher outro preset.
+#       3. SALVA (Ctrl+S). É só isso. O polvo recarrega sozinho em ~1 segundo
+#          enquanto ele estiver aberto. Não precisa fechar e abrir.
 #
-# Voce pode adicionar quantos presets quiser e trocar entre eles
-# pelo menu de contexto (clique-direito → "Preset").
+#  💡  Cada PRESET é um conjunto de teclas com um nome. Você pode ter
+#      vários presets aqui (um pra cada jogo, um pra cada modo, etc.) e
+#      trocar rapidinho:
+#       - editando o `[active]` lá embaixo, OU
+#       - clicando-direito no polvo → menu "Preset" → escolhe o nome.
+#
+#  🎯  O número de lanes do polvo = quantas teclas tem na lista `keys`.
+#      Pode ser entre 4 e 8 lanes. Se você passar 5 teclas, o polvo cresce
+#      pra 5 tentáculos. 7 teclas = 7 tentáculos. Simples assim.
+#
+#  🧪  Onde esse arquivo fica?
+#       - Por padrão: do lado do octopus.py (esse aqui, no repo).
+#       - Você pode COPIAR ele pra ~/.jamproject/presets.toml pra ter
+#         um "seu" arquivo pessoal que sobrescreve o do repo.
+#         (No Windows: C:\Users\<você>\.jamproject\presets.toml)
+#
+#  ⌨️  TECLAS VÁLIDAS:
+#      Qualquer letra:        "a"  "b"  "c"  ...  "z"
+#      Qualquer dígito:       "1"  "2"  "3"  ...  "0"
+#      Setas:                 "left"  "right"  "up"  "down"
+#      Espaço:                "space"
+#      Modificadores:         "shift"  "ctrl"  "alt"
+#      Navegação:             "enter"  "tab"  "esc"  "backspace"
+#      Símbolos:              ";"  ","  "."  "/"  "'"  "["  "]"  "\\"  "-"  "="
+#      Numpad:                "num_0" ... "num_9"  (depende do SO/teclado)
+#      Função:                "f1"  "f2"  ...  "f12"
+#
+#  ⚠️  Tudo em MINÚSCULO. Aspas duplas em volta de cada tecla. Vírgula
+#      separando. Sempre dentro de colchetes [...]. Exemplo correto:
+#          keys = ["a", "s", "d", "f"]
+#
+#  ❌  Erro comum: ESQUECER as aspas. `keys = [a, s, d, f]` quebra.
+#  ❌  Erro comum: passar MAIS DE 8 ou MENOS DE 4 teclas. O polvo ignora.
+#
+# ════════════════════════════════════════════════════════════════════════════════
+
+
+# ─── ESCOLHA AQUI QUAL PRESET ESTÁ ATIVO ────────────────────────────────────────
+# Troque a string `preset = "..."` por qualquer um dos nomes definidos abaixo
+# (linhas `[preset.NOME]`). Se você criar um preset novo lá embaixo, basta
+# apontar pra ele aqui pra ele virar o ativo.
 
 [active]
 preset = "guitar-4k"
 
 
-# ────────────────────────────────────────────────
-# Presets prontos — copia, modifica, ou cria os seus.
-# ────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════════════
+#                              PRESETS PRONTOS
+# ════════════════════════════════════════════════════════════════════════════════
+#  Os 9 presets abaixo já cobrem a maioria dos jogos de ritmo populares.
+#  Você pode:
+#    - usar como estão,
+#    - editar as teclas (`keys = [...]`),
+#    - duplicar um bloco inteiro e renomear pra criar o seu.
+#
+#  Modelo pra criar um preset novo (copia, cola embaixo, edita):
+#
+#      [preset.MEU-PRESET]
+#      description = "uma descrição curta pra aparecer no menu"
+#      keys = ["a", "s", "d", "f"]
+#
+# ════════════════════════════════════════════════════════════════════════════════
 
+
+# ─── Guitar Hero / Clone Hero — 4 trastes ───────────────────────────────────────
+# Pra jogos de guitarra estilo Guitar Hero clássico, Clone Hero em modo 4-fret,
+# Fortnite Festival Easy/Medium. Mão esquerda inteira na linha home.
 [preset.guitar-4k]
-description = "Guitar Hero / Clone Hero clássico (4 lanes)"
+description = "Guitar Hero / Clone Hero — 4 lanes clássicas (A S D F)"
 keys = ["a", "s", "d", "f"]
 
+
+# ─── Guitar Hero — 5 trastes (modo padrão da maioria das músicas) ──────────────
+# 5 fret é o padrão de Guitar Hero / Clone Hero / Rocksmith / Frets on Fire.
+# Verde, vermelho, amarelo, azul, laranja.
 [preset.guitar-5k]
-description = "Guitar Hero 5-fret estilo Jam Project"
+description = "Guitar Hero / Clone Hero — 5 lanes (A S D F G)"
 keys = ["a", "s", "d", "f", "g"]
 
+
+# ─── osu!mania 4K ──────────────────────────────────────────────────────────────
+# Padrão de osu!mania pra mapas 4 colunas. Duas mãos dividindo o teclado.
 [preset.osu-mania-4k]
 description = "osu!mania 4K — D F J K"
 keys = ["d", "f", "j", "k"]
 
+
+# ─── osu!mania 5K ──────────────────────────────────────────────────────────────
+# 5 colunas com espaço no meio servindo de coluna central (padrão do osu!mania).
 [preset.osu-mania-5k]
-description = "osu!mania 5K — D F space J K"
+description = "osu!mania 5K — D F espaço J K"
 keys = ["d", "f", "space", "j", "k"]
 
+
+# ─── osu!mania 6K ──────────────────────────────────────────────────────────────
+# 6 colunas, três dedos por mão na linha home + linha de baixo.
 [preset.osu-mania-6k]
 description = "osu!mania 6K — S D F J K L"
 keys = ["s", "d", "f", "j", "k", "l"]
 
+
+# ─── osu!mania 7K ──────────────────────────────────────────────────────────────
+# 7 colunas — coluna do meio é o espaço, três dedos pra cada lado.
+# Também serve pra Stepmania single (com adaptação).
 [preset.osu-mania-7k]
-description = "osu!mania 7K — S D F space J K L"
+description = "osu!mania 7K — S D F espaço J K L"
 keys = ["s", "d", "f", "space", "j", "k", "l"]
 
+
+# ─── StepMania / DDR — setas do teclado ────────────────────────────────────────
+# Pra jogos de dança que usam as 4 direções (esquerda, baixo, cima, direita).
 [preset.stepmania-4k]
-description = "StepMania / DDR — setas do teclado"
+description = "StepMania / DDR / In The Groove — setas do teclado"
 keys = ["left", "down", "up", "right"]
 
+
+# ─── Friday Night Funkin' (4K) ─────────────────────────────────────────────────
+# FNF padrão usa setas. Se você prefere WASD, troque a linha keys por
+# `keys = ["a", "s", "w", "d"]`.
 [preset.fnf-4k]
-description = "Friday Night Funkin' default — A S D W ou setas"
+description = "Friday Night Funkin' — setas (esquerda, baixo, cima, direita)"
 keys = ["left", "down", "up", "right"]
 
+
+# ─── 8K (Pump It Up double / 8-lane mania extremo) ─────────────────────────────
+# 8 colunas, ambas as mãos espalhadas pela linha home + 1 símbolo. Pesado
+# pra dedos novos — use só se sua música realmente tem 8 trilhas.
 [preset.dance-8k]
-description = "PIU/double-dance estilo 8 lanes"
+description = "8 lanes — A S D F | J K L ;"
 keys = ["a", "s", "d", "f", "j", "k", "l", ";"]
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+#                              SEUS PRESETS AQUI ↓
+# ════════════════════════════════════════════════════════════════════════════════
+#
+#  Espaço livre pra você criar os seus. Descomenta o exemplo abaixo (tira o
+#  `#` do começo de cada linha) e personaliza:
+#
+#  [preset.meu-jogo]
+#  description = "minha config personalizada"
+#  keys = ["q", "w", "e", "r"]
+#
+#  Depois de criar, vai lá no topo e troca `[active] preset = "meu-jogo"` pra
+#  esse preset virar o ativo. Salva o arquivo — pronto, o polvo já tá usando.
+#
+# ════════════════════════════════════════════════════════════════════════════════
