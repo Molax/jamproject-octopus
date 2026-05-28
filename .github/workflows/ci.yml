@@ -65,10 +65,14 @@ jobs:
 
       - name: import smoke
         shell: bash
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: |
-          python -c "import sys, importlib; \
-            spec = importlib.util.spec_from_file_location('octopus', 'octopus.py'); \
-            mod = importlib.util.module_from_spec(spec); \
-            sys.modules['octopus'] = mod; \
-            spec.loader.exec_module(mod); \
-            print('imported ok, has main:', hasattr(mod, 'main'))"
+          python -c "
+          import sys, importlib.util
+          spec = importlib.util.spec_from_file_location('octopus', 'octopus.py')
+          mod = importlib.util.module_from_spec(spec)
+          sys.modules['octopus'] = mod
+          spec.loader.exec_module(mod)
+          print('imported ok, has main:', hasattr(mod, 'main'))
+          "
