@@ -1,0 +1,22 @@
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "SIM", # flake8-simplify
+    "C4",  # flake8-comprehensions
+]
+ignore = [
+    "E501",  # line too long — line-length handles it; allow long literal lines (SVG paths, etc.)
+    "B008",  # function call in default arg — fine for Qt defaults
+]
+
+[tool.ruff.format]
+quote-style = "single"

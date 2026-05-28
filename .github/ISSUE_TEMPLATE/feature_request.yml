@@ -1,0 +1,32 @@
+name: ✨ Feature request
+description: Suggest an idea for the desktop overlay
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Got an idea? Drop it below. Reminder: this repo is the **desktop overlay tool only** — gameplay and web feature requests belong at [jamproject.net/contact](https://jamproject.net/contact).
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      placeholder: "Right now I can't bind custom keys without editing the JSON config by hand."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: What's your proposed solution?
+      placeholder: "Add a right-click menu entry that opens a small key-binding dialog, where I can click a row and press the key I want."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      placeholder: "A CLI flag would work but a menu is more discoverable."
+    validations:
+      required: false

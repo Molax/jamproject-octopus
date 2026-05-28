@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🎮 Bug in the game itself (gameplay, scoring, songs)
+    url: https://jamproject.net/contact
+    about: This repo is only the desktop overlay tool. Web-side bugs belong at jamproject.net.
+  - name: 💬 General discussion / chat
+    url: https://jamproject.net
+    about: Find the Discord link on jamproject.net to chat with the community.
