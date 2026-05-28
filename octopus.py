@@ -361,7 +361,7 @@ class OctopusWidget(QWidget):
 
         self.state = State()
         self.n_lanes: int = int(self.cfg.get('lanes', 4))
-        self.tint = QColor(self.cfg.get('tint', '#7c5cff'))
+        self.tint = QColor(self.cfg.get('tint', '#ffffff'))
         self.show_kps = bool(self.cfg.get('show_kps', True))
 
         self._drag_start: QPointF | None = None
