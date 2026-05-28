@@ -95,7 +95,7 @@ jobs:
           find artifacts -type f -exec cp {} out/ \;
           ls -la out/
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           draft: true
           files: out/*
