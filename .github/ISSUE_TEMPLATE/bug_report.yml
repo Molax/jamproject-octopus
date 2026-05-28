@@ -1,0 +1,101 @@
+name: 🐛 Bug report
+description: Something in the desktop overlay is broken or misbehaving
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug! Please fill in as much as you can — the more we know, the faster we can fix it.
+
+        **Note:** if your bug is about gameplay, scoring, charting, or anything in the web app itself, please file it at [jamproject.net/contact](https://jamproject.net/contact) instead. This repo is only the desktop overlay tool.
+
+  - type: input
+    id: app_version
+    attributes:
+      label: App version
+      description: Release tag, or `git rev-parse HEAD` if running from source.
+      placeholder: "v0.1.0  /  3f8c1ab"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows 11
+        - Windows 10
+        - Linux (X11)
+        - Linux (Wayland)
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Other (please specify in description)
+    validations:
+      required: true
+
+  - type: input
+    id: os_version
+    attributes:
+      label: OS version
+      description: e.g. `winver` on Windows, `uname -a` on Linux/Mac, the full version string from About → System.
+      placeholder: "Windows 11 Pro 23H2 (build 22631.3447)"
+    validations:
+      required: true
+
+  - type: input
+    id: python_version
+    attributes:
+      label: Python version (if running from source)
+      description: `python --version`. Leave blank if you're using a release `.exe`.
+      placeholder: "Python 3.12.2"
+    validations:
+      required: false
+
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What happened?
+      description: A clear description of the problem.
+      placeholder: "When I launch the app, the octopus window appears but doesn't react to any keystrokes."
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+      placeholder: "Pressing A/S/D/F should light up tentacles and bump the KPS counter."
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. `python octopus.py`
+        2. Click on another window to give it focus
+        3. Press A
+        4. Observe: nothing happens
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Terminal output / logs (optional)
+      description: Any tracebacks or warnings from the terminal where you launched the script.
+      placeholder: "Paste log lines as a code block, or drop a screenshot."
+      render: shell
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched [existing issues](https://github.com/Molax/jamproject-octopus/issues) and didn't find a duplicate.
+          required: true
+        - label: This bug is specifically about the **desktop overlay tool** — not gameplay, scoring, or the web app.
+          required: true
