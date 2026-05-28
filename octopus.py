@@ -89,15 +89,47 @@ except ModuleNotFoundError:  # pragma: no cover  — py 3.10 fallback
 
 def _script_dir() -> Path:
     if getattr(sys, 'frozen', False):
+        # PyInstaller --onefile: bundled resources live in sys._MEIPASS;
+        # writable space next to the exe is sys.executable.parent.
+        meipass = getattr(sys, '_MEIPASS', None)
+        if meipass:
+            return Path(meipass)
+        return Path(sys.executable).parent
+    return Path(__file__).resolve().parent
+
+
+def _exe_dir() -> Path:
+    """Where the .exe itself lives (writable). Differs from _script_dir() on frozen builds."""
+    if getattr(sys, 'frozen', False):
         return Path(sys.executable).parent
     return Path(__file__).resolve().parent
 
 
 def find_presets_file() -> Path | None:
-    for p in (PRESETS_USER_PATH, _script_dir() / PRESETS_FILENAME):
+    # Lookup order:
+    #   1. ~/.jamproject/presets.toml   — user override
+    #   2. <exe_dir>/presets.toml       — sibling of the binary the user can edit
+    #   3. <script_dir>/presets.toml    — repo file (dev) or MEIPASS bundle (frozen)
+    for p in (PRESETS_USER_PATH, _exe_dir() / PRESETS_FILENAME, _script_dir() / PRESETS_FILENAME):
         if p.is_file():
             return p
     return None
+
+
+def ensure_user_presets_file() -> Path | None:
+    """On first run, copy the bundled presets.toml to ~/.jamproject/ so the user has
+    a real, editable file with full inline docs — no need to re-download anything."""
+    if PRESETS_USER_PATH.is_file():
+        return PRESETS_USER_PATH
+    bundled = _script_dir() / PRESETS_FILENAME
+    if not bundled.is_file():
+        return None
+    try:
+        PRESETS_USER_PATH.parent.mkdir(parents=True, exist_ok=True)
+        PRESETS_USER_PATH.write_text(bundled.read_text(encoding='utf-8'), encoding='utf-8')
+        return PRESETS_USER_PATH
+    except OSError:
+        return None
 
 
 def load_presets() -> tuple[dict[str, dict], str | None]:
@@ -383,6 +415,7 @@ class OctopusWidget(QWidget):
         self.update()
 
     def _load_presets_into_cfg(self) -> None:
+        ensure_user_presets_file()
         presets, active = load_presets()
         self.presets = presets
         path = find_presets_file()

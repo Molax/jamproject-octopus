@@ -20,14 +20,17 @@ jobs:
             artifact_name: JamProject-Octopus-windows-x64.exe
             pyinstaller_out: dist/JamProject-Octopus.exe
             extra_flags: --noconsole
+            add_data: "presets.toml;."
           - os: ubuntu-22.04
             artifact_name: JamProject-Octopus-linux-x64
             pyinstaller_out: dist/JamProject-Octopus
             extra_flags: ""
+            add_data: "presets.toml:."
           - os: macos-latest
             artifact_name: JamProject-Octopus-macos
             pyinstaller_out: dist/JamProject-Octopus
             extra_flags: --windowed
+            add_data: "presets.toml:."
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -55,7 +58,9 @@ jobs:
       - name: build with PyInstaller
         shell: bash
         run: |
-          pyinstaller --onefile ${{ matrix.extra_flags }} --name JamProject-Octopus octopus.py
+          pyinstaller --onefile ${{ matrix.extra_flags }} \
+            --add-data "${{ matrix.add_data }}" \
+            --name JamProject-Octopus octopus.py
           ls -la dist/
 
       - name: rename for release
