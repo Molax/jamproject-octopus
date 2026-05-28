@@ -12,7 +12,7 @@ Controles:
   - Arrastar: clique-esquerdo + drag em qualquer área
   - Resize: drag no canto inferior-direito (mantém aspect ratio 200:240)
   - Menu: clique-direito
-  - Config: salva em ~/.jam-legend/octopus-desktop.json
+  - Config: salva em ~/.jamproject/octopus-desktop.json
 """
 
 from __future__ import annotations
@@ -73,7 +73,66 @@ DEFAULT_KEYS: dict[int, list[str]] = {
     8: ['a', 's', 'd', 'f', 'j', 'k', 'l', ';'],
 }
 
-CONFIG_PATH = Path.home() / '.jam-legend' / 'octopus-desktop.json'
+CONFIG_PATH = Path.home() / '.jamproject' / 'octopus-desktop.json'
+
+# presets.toml is the user-facing config. Lookup order:
+#   1. ~/.jamproject/presets.toml    (per-user override)
+#   2. <script_dir>/presets.toml     (shipped with the repo)
+PRESETS_FILENAME = 'presets.toml'
+PRESETS_USER_PATH = Path.home() / '.jamproject' / PRESETS_FILENAME
+
+try:
+    import tomllib  # py 3.11+
+except ModuleNotFoundError:  # pragma: no cover  — py 3.10 fallback
+    import tomli as tomllib  # type: ignore[no-redef]
+
+
+def _script_dir() -> Path:
+    if getattr(sys, 'frozen', False):
+        return Path(sys.executable).parent
+    return Path(__file__).resolve().parent
+
+
+def find_presets_file() -> Path | None:
+    for p in (PRESETS_USER_PATH, _script_dir() / PRESETS_FILENAME):
+        if p.is_file():
+            return p
+    return None
+
+
+def load_presets() -> tuple[dict[str, dict], str | None]:
+    """Return (presets_by_name, active_preset_name)."""
+    path = find_presets_file()
+    if path is None:
+        return ({}, None)
+    try:
+        data = tomllib.loads(path.read_text(encoding='utf-8'))
+    except Exception as exc:
+        print(f'[octopus] presets.toml parse error: {exc}', file=sys.stderr)
+        return ({}, None)
+    presets_section = data.get('preset', {}) or {}
+    presets: dict[str, dict] = {}
+    for name, body in presets_section.items():
+        if not isinstance(body, dict):
+            continue
+        keys = body.get('keys')
+        if not isinstance(keys, list) or not keys:
+            continue
+        n = len(keys)
+        if n < MIN_LANES or n > MAX_LANES:
+            print(
+                f'[octopus] preset "{name}" has {n} keys — must be {MIN_LANES}-{MAX_LANES}',
+                file=sys.stderr,
+            )
+            continue
+        presets[name] = {
+            'keys': [str(k).lower() for k in keys],
+            'description': str(body.get('description', '')).strip(),
+        }
+    active = (data.get('active') or {}).get('preset')
+    if active is not None:
+        active = str(active)
+    return (presets, active)
 
 
 def now_ms() -> float:
@@ -294,6 +353,12 @@ class OctopusWidget(QWidget):
         self.setMinimumSize(180, 216)
 
         self.cfg = self._load_config()
+        self.presets: dict[str, dict] = {}
+        self.active_preset: str | None = None
+        self._presets_path: Path | None = None
+        self._presets_mtime: float = 0.0
+        self._load_presets_into_cfg()
+
         self.state = State()
         self.n_lanes: int = int(self.cfg.get('lanes', 4))
         self.tint = QColor(self.cfg.get('tint', '#7c5cff'))
@@ -306,12 +371,67 @@ class OctopusWidget(QWidget):
         self._apply_geometry()
 
         self.timer = QTimer(self)
-        self.timer.timeout.connect(self.update)
+        self.timer.timeout.connect(self._tick)
         self.timer.start(33)
 
         self.listener = pkeyboard.Listener(on_press=self._on_press, on_release=self._on_release)
         self.listener.daemon = True
         self.listener.start()
+
+    def _tick(self) -> None:
+        self._maybe_reload_presets()
+        self.update()
+
+    def _load_presets_into_cfg(self) -> None:
+        presets, active = load_presets()
+        self.presets = presets
+        path = find_presets_file()
+        self._presets_path = path
+        self._presets_mtime = path.stat().st_mtime if path else 0.0
+        if not presets:
+            return
+        chosen = self.cfg.get('preset') if isinstance(self.cfg.get('preset'), str) else None
+        if chosen not in presets:
+            chosen = active if active in presets else next(iter(presets))
+        self.active_preset = chosen
+        keys = presets[chosen]['keys']
+        self.cfg['preset'] = chosen
+        self.cfg['keys'] = keys
+        self.cfg['lanes'] = len(keys)
+
+    def _maybe_reload_presets(self) -> None:
+        if self._presets_path is None:
+            return
+        try:
+            mtime = self._presets_path.stat().st_mtime
+        except OSError:
+            return
+        if mtime <= self._presets_mtime:
+            return
+        self._presets_mtime = mtime
+        prev_preset = self.active_preset
+        presets, active = load_presets()
+        if not presets:
+            return
+        self.presets = presets
+        chosen = (
+            prev_preset if prev_preset in presets else (active if active in presets else next(iter(presets)))
+        )
+        self._apply_preset(chosen, persist=False)
+
+    def _apply_preset(self, name: str, *, persist: bool = True) -> None:
+        if name not in self.presets:
+            return
+        keys = self.presets[name]['keys']
+        self.active_preset = name
+        self.cfg['preset'] = name
+        self.cfg['keys'] = keys
+        self.cfg['lanes'] = len(keys)
+        self.n_lanes = len(keys)
+        self.state = State()
+        if persist:
+            self._save_config()
+        self.update()
 
     def _apply_geometry(self) -> None:
         w = int(self.cfg.get('w', 280))
@@ -679,12 +799,34 @@ class OctopusWidget(QWidget):
 
     def _show_menu(self, pos) -> None:
         m = QMenu(self)
+
+        if self.presets:
+            preset_menu = m.addMenu('Preset')
+            for name, body in self.presets.items():
+                label = name + ('  ✓' if name == self.active_preset else '')
+                desc = body.get('description') or ''
+                a = QAction(label, self)
+                if desc:
+                    a.setToolTip(desc)
+                a.triggered.connect(lambda _checked=False, nn=name: self._apply_preset(nn))
+                preset_menu.addAction(a)
+            preset_menu.addSeparator()
+            a_open = QAction('Abrir presets.toml…', self)
+            a_open.triggered.connect(self._open_presets_file)
+            preset_menu.addAction(a_open)
+            a_reload = QAction('Recarregar presets', self)
+            a_reload.triggered.connect(self._force_reload_presets)
+            preset_menu.addAction(a_reload)
+            m.addSeparator()
+
+        lanes_menu = m.addMenu('Quick lane count')
         for n in (4, 5, 6, 7, 8):
             label = f'{n} lanes' + ('  ✓' if n == self.n_lanes else '')
             a = QAction(label, self)
             a.triggered.connect(lambda _checked=False, nn=n: self._set_lanes(nn))
-            m.addAction(a)
+            lanes_menu.addAction(a)
         m.addSeparator()
+
         a_kps = QAction('Mostrar KPS' + ('  ✓' if self.show_kps else ''), self)
         a_kps.triggered.connect(self._toggle_kps)
         m.addAction(a_kps)
@@ -697,9 +839,33 @@ class OctopusWidget(QWidget):
         m.addAction(a_quit)
         m.exec(pos)
 
+    def _open_presets_file(self) -> None:
+        path = self._presets_path or (_script_dir() / PRESETS_FILENAME)
+        if not path.exists():
+            try:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                fallback = _script_dir() / PRESETS_FILENAME
+                if fallback.exists() and fallback != path:
+                    path.write_text(fallback.read_text(encoding='utf-8'), encoding='utf-8')
+                else:
+                    path.touch()
+            except OSError:
+                return
+        with contextlib.suppress(Exception):
+            from PyQt6.QtCore import QUrl
+            from PyQt6.QtGui import QDesktopServices
+
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
+
+    def _force_reload_presets(self) -> None:
+        self._presets_mtime = 0.0  # force the next tick to reload
+        self._maybe_reload_presets()
+
     def _set_lanes(self, n: int) -> None:
         self.n_lanes = max(MIN_LANES, min(MAX_LANES, n))
         self.cfg['keys'] = DEFAULT_KEYS[self.n_lanes]
+        self.cfg.pop('preset', None)
+        self.active_preset = None
         self.state = State()
         self._save_config()
         self.update()

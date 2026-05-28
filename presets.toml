@@ -1,0 +1,68 @@
+# JamProject Octopus — presets de keybinding
+# ============================================================
+# Edita esse arquivo, salva, e abre o app (clique-direito → "Recarregar presets").
+# Nao precisa mexer em codigo nenhum.
+#
+# Como funciona:
+#   - [active] active = "<nome do preset>"     escolhe qual preset usar
+#   - [preset.<nome>]                          cada preset tem suas teclas
+#   - keys = ["<tecla1>", "<tecla2>", ...]     uma string por lane, em ordem
+#   - O numero de lanes = quantas strings na lista (entre 4 e 8)
+#
+# Nomes de tecla validos (qualquer letra/digito ou um dos abaixo):
+#   "a" "s" "d" "f" "g" "h" "j" "k" "l" "1" "2" "3" "4" "5" ...
+#   "space"        barra de espaco
+#   "shift"        Shift (qualquer lado)
+#   "ctrl"         Ctrl
+#   "alt"          Alt
+#   "enter"        Enter
+#   "tab"          Tab
+#   "left"  "right"  "up"  "down"     setas
+#   ";" "," "." "/" "'" "[" "]"        simbolos
+#
+# Voce pode adicionar quantos presets quiser e trocar entre eles
+# pelo menu de contexto (clique-direito → "Preset").
+
+[active]
+preset = "guitar-4k"
+
+
+# ────────────────────────────────────────────────
+# Presets prontos — copia, modifica, ou cria os seus.
+# ────────────────────────────────────────────────
+
+[preset.guitar-4k]
+description = "Guitar Hero / Clone Hero clássico (4 lanes)"
+keys = ["a", "s", "d", "f"]
+
+[preset.guitar-5k]
+description = "Guitar Hero 5-fret estilo Jam Project"
+keys = ["a", "s", "d", "f", "g"]
+
+[preset.osu-mania-4k]
+description = "osu!mania 4K — D F J K"
+keys = ["d", "f", "j", "k"]
+
+[preset.osu-mania-5k]
+description = "osu!mania 5K — D F space J K"
+keys = ["d", "f", "space", "j", "k"]
+
+[preset.osu-mania-6k]
+description = "osu!mania 6K — S D F J K L"
+keys = ["s", "d", "f", "j", "k", "l"]
+
+[preset.osu-mania-7k]
+description = "osu!mania 7K — S D F space J K L"
+keys = ["s", "d", "f", "space", "j", "k", "l"]
+
+[preset.stepmania-4k]
+description = "StepMania / DDR — setas do teclado"
+keys = ["left", "down", "up", "right"]
+
+[preset.fnf-4k]
+description = "Friday Night Funkin' default — A S D W ou setas"
+keys = ["left", "down", "up", "right"]
+
+[preset.dance-8k]
+description = "PIU/double-dance estilo 8 lanes"
+keys = ["a", "s", "d", "f", "j", "k", "l", ";"]
