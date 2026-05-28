@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 280" width="480" height="560" role="img" aria-label="JamProject Octopus — 5-lane preview with KPS counter">
+  <title>JamProject Octopus — 5-lane preview</title>
+  <desc>An animated purple octopus mascot reaching five color-coded keys (A S D F G), with a live keys-per-second counter in the corner.</desc>
+
+  <defs>
+    <radialGradient id="bodyGrad" cx="50%" cy="35%" r="65%">
+      <stop offset="0%"  stop-color="#a48bff"/>
+      <stop offset="60%" stop-color="#7c5cff"/>
+      <stop offset="100%" stop-color="#5a3fcc"/>
+    </radialGradient>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#0d0f1a"/>
+      <stop offset="100%" stop-color="#1a1830"/>
+    </linearGradient>
+    <radialGradient id="kpsGrad" cx="50%" cy="50%" r="60%">
+      <stop offset="0%"  stop-color="#262438" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#14131f" stop-opacity="0.95"/>
+    </radialGradient>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- canvas background (rounded card) -->
+  <rect x="0" y="0" width="240" height="280" rx="16" ry="16" fill="url(#bgGrad)"/>
+
+  <!-- offset so the 200x240 octopus sits centred with 20px margins -->
+  <g transform="translate(20, 20)">
+
+    <!-- tentacles drawn behind the body -->
+    <g fill="none" stroke-linecap="round">
+
+      <!-- lane 0 — red, idle -->
+      <path d="M 61 116 Q 30 124 25 156" stroke="#ffffff" stroke-opacity="0.55" stroke-width="9"/>
+      <ellipse cx="46" cy="118" rx="2.2" ry="1.4" fill="#cfcfcf" opacity="0.55" transform="rotate(50 46 118)"/>
+      <ellipse cx="35" cy="126" rx="2.2" ry="1.4" fill="#cfcfcf" opacity="0.55" transform="rotate(80 35 126)"/>
+      <ellipse cx="29" cy="140" rx="2.2" ry="1.4" fill="#cfcfcf" opacity="0.55" transform="rotate(95 29 140)"/>
+      <ellipse cx="26" cy="151" rx="2.2" ry="1.4" fill="#cfcfcf" opacity="0.55" transform="rotate(98 26 151)"/>
+
+      <!-- lane 1 — orange, idle -->
+      <path d="M 80 116 Q 84 124 62 156" stroke="#ffffff" stroke-opacity="0.6" stroke-width="9"/>
+      <ellipse cx="79" cy="121" rx="2.2" ry="1.4" fill="#cfcfcf" opacity="0.6" transform="rotate(70 79 121)"/>
+      <ellipse cx="76" cy="132" rx="2.2" ry="1.4" fill="#cfcfcf" opacity="0.6" transform="rotate(100 76 132)"/>
+      <ellipse cx="69" cy="144" rx="2.2" ry="1.4" fill="#cfcfcf" opacity="0.6" transform="rotate(110 69 144)"/>
+      <ellipse cx="63" cy="153" rx="2.2" ry="1.4" fill="#cfcfcf" opacity="0.6" transform="rotate(112 63 153)"/>
+
+      <!-- lane 2 — yellow, PRESSED (full color, thicker, lifted tip) -->
+      <path d="M 100 116 Q 87 130 100 162" stroke="#ffd23d" stroke-width="13"/>
+      <ellipse cx="93" cy="124" rx="2.2" ry="1.4" fill="#ffd23d" transform="rotate(80 93 124)"/>
+      <ellipse cx="91" cy="138" rx="2.2" ry="1.4" fill="#ffd23d" transform="rotate(100 91 138)"/>
+      <ellipse cx="94" cy="150" rx="2.2" ry="1.4" fill="#ffd23d" transform="rotate(105 94 150)"/>
+      <ellipse cx="99" cy="158" rx="2.2" ry="1.4" fill="#ffd23d" transform="rotate(95 99 158)"/>
+
+      <!-- lane 3 — green, idle -->
+      <path d="M 120 116 Q 142 124 138 156" stroke="#ffffff" stroke-opacity="0.6" stroke-width="9"/>
+      <ellipse cx="128" cy="120" rx="2.2" ry="1.4" fill="#cfcfcf" opacity="0.6" transform="rotate(-70 128 120)"/>
+      <ellipse cx="135" cy="131" rx="2.2" ry="1.4" fill="#cfcfcf" opacity="0.6" transform="rotate(-95 135 131)"/>
+      <ellipse cx="139" cy="144" rx="2.2" ry="1.4" fill="#cfcfcf" opacity="0.6" transform="rotate(-100 139 144)"/>
+      <ellipse cx="139" cy="153" rx="2.2" ry="1.4" fill="#cfcfcf" opacity="0.6" transform="rotate(-95 139 153)"/>
+
+      <!-- lane 4 — blue, idle -->
+      <path d="M 139 116 Q 144 124 175 156" stroke="#ffffff" stroke-opacity="0.55" stroke-width="9"/>
+      <ellipse cx="143" cy="120" rx="2.2" ry="1.4" fill="#cfcfcf" opacity="0.55" transform="rotate(-50 143 120)"/>
+      <ellipse cx="151" cy="132" rx="2.2" ry="1.4" fill="#cfcfcf" opacity="0.55" transform="rotate(-65 151 132)"/>
+      <ellipse cx="164" cy="144" rx="2.2" ry="1.4" fill="#cfcfcf" opacity="0.55" transform="rotate(-78 164 144)"/>
+      <ellipse cx="173" cy="152" rx="2.2" ry="1.4" fill="#cfcfcf" opacity="0.55" transform="rotate(-82 173 152)"/>
+    </g>
+
+    <!-- body -->
+    <g transform="translate(0, 8)">
+      <!-- head -->
+      <ellipse cx="100" cy="70" rx="46" ry="42" fill="url(#bodyGrad)"/>
+      <!-- highlight -->
+      <ellipse cx="100" cy="58" rx="36" ry="14" fill="#ffffff" fill-opacity="0.22"/>
+
+      <!-- eyes — "happy" mood -->
+      <circle cx="84" cy="72" r="8" fill="#ffffff"/>
+      <circle cx="116" cy="72" r="8" fill="#ffffff"/>
+      <circle cx="85" cy="73" r="4" fill="#15151c"/>
+      <circle cx="117" cy="73" r="4" fill="#15151c"/>
+      <circle cx="82" cy="69" r="1.4" fill="#ffffff"/>
+      <circle cx="114" cy="69" r="1.4" fill="#ffffff"/>
+
+      <!-- happy mouth -->
+      <path d="M 92 94 Q 100 106 108 94" stroke="#15151c" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+
+      <!-- blush -->
+      <ellipse cx="74" cy="86" rx="5" ry="2.5" fill="#ff7896" fill-opacity="0.55"/>
+      <ellipse cx="126" cy="86" rx="5" ry="2.5" fill="#ff7896" fill-opacity="0.55"/>
+    </g>
+
+    <!-- keys (5 lanes: A S D F G) — D pressed (yellow lane) -->
+    <!-- lane 0 — A, idle -->
+    <rect x="8"     y="176" width="33.6" height="48" rx="3" fill="#15151c"/>
+    <text x="24.8" y="204" font-family="Segoe UI, system-ui, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#9aa0aa">A</text>
+
+    <!-- lane 1 — S, idle -->
+    <rect x="45.6"  y="176" width="33.6" height="48" rx="3" fill="#15151c"/>
+    <text x="62.4" y="204" font-family="Segoe UI, system-ui, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#9aa0aa">S</text>
+
+    <!-- lane 2 — D, PRESSED (yellow fill, pushed down 2px, shorter) -->
+    <rect x="83.2"  y="178" width="33.6" height="46" rx="3" fill="#ffd23d"/>
+    <text x="100"  y="206" font-family="Segoe UI, system-ui, sans-serif" font-size="14" font-weight="800" text-anchor="middle" fill="#15151c">D</text>
+
+    <!-- lane 3 — F, idle -->
+    <rect x="120.8" y="176" width="33.6" height="48" rx="3" fill="#15151c"/>
+    <text x="137.6" y="204" font-family="Segoe UI, system-ui, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#9aa0aa">F</text>
+
+    <!-- lane 4 — G, idle -->
+    <rect x="158.4" y="176" width="33.6" height="48" rx="3" fill="#15151c"/>
+    <text x="175.2" y="204" font-family="Segoe UI, system-ui, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#9aa0aa">G</text>
+  </g>
+
+  <!-- KPS pill (top-left, fixed in widget coords) -->
+  <g transform="translate(12, 12)">
+    <rect x="0" y="0" width="92" height="30" rx="15" fill="url(#kpsGrad)" stroke="#ffffff" stroke-opacity="0.2"/>
+    <text x="24" y="22" font-family="Segoe UI, system-ui, sans-serif" font-size="17" font-weight="800" text-anchor="middle" fill="#ffffff">7</text>
+    <text x="56" y="21" font-family="Segoe UI, system-ui, sans-serif" font-size="10" font-weight="800" fill="#cfd1da" letter-spacing="0.5">KPS</text>
+  </g>
+
+  <!-- subtle bottom-right resize hint -->
+  <g transform="translate(218, 258)" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1.5" fill="none">
+    <line x1="14" y1="0" x2="0" y2="14"/>
+    <line x1="14" y1="5" x2="5" y2="14"/>
+  </g>
+</svg>

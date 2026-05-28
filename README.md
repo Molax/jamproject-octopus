@@ -18,7 +18,9 @@
   <a href="https://github.com/Molax/jamproject-octopus/issues"><strong>Report a bug</strong></a>
 </p>
 
-<sub>(GIF/screenshot will land here once we have one — drop a PR if you record a good one.)</sub>
+<img src="docs/preview.svg" alt="JamProject Octopus — 5-lane preview with KPS counter" width="320">
+
+<sub>5-lane preview · the <strong>D</strong> key is pressed (yellow tentacle reaches up, key pressed in)</sub>
 
 </div>
 
@@ -32,9 +34,7 @@ It listens to your **global keyboard** (4 to 8 lanes, your pick), and the animat
 
 - 🐙 **Reacts per lane** — tentacles wave, suckers light up, and color-coded keys press down
 - ⚡ **Shows live KPS** *(keys per second over a 1-second rolling window)* with a hot-pill state at ≥ 8 KPS
-- 🔥 **Tracks your combo** — tentacles "light up" at 10 / 25 / 50, and the **Kraken mode** unlocks at 100 (rainbow tentacles, ecstatic face)
-- 😄 **Has 8 moods** — *normal · happy · focused · hyped · panic · despair · oops · transcendent* — driven by KPS, combo, and recent misses
-- 🌡️ **Lane heat** — recently-hit lanes glow thicker, so you can literally see which fingers are working hardest
+- 😄 **Has multiple moods** — *normal · happy · focused · hyped · panic · despair · oops · transcendent* — driven by KPS and recent misses
 - 👁️ **Eye tracking** — pupils glance toward whichever lanes are pressed
 
 ## 💻 Requirements
@@ -72,17 +72,33 @@ python octopus.py
 
 A transparent, frameless window appears in the bottom-right corner of your primary screen. Start typing — the octopus is now listening globally to your keyboard.
 
-## 🎮 Default key mappings
+## 🎮 Key mappings — easy mode (presets.toml)
 
-| Lanes | Default keys |
-| :---: | :--- |
-| 4 | `A` `S` `D` `F` |
-| 5 | `A` `S` `D` `F` `G` |
-| 6 | `A` `S` `D` `J` `K` `L` |
-| 7 | `A` `S` `D` `Space` `J` `K` `L` |
-| 8 | `A` `S` `D` `F` `J` `K` `L` `;` |
+Open [`presets.toml`](presets.toml) in any text editor. It looks like this:
 
-Switch lane count from the **right-click menu**. Custom key bindings can be set by editing `~/.jam-legend/octopus-desktop.json` (created on first run) — replace the `"keys"` array with whatever pynput key names you want.
+```toml
+[active]
+preset = "guitar-4k"
+
+[preset.guitar-4k]
+description = "Guitar Hero / Clone Hero clássico (4 lanes)"
+keys = ["a", "s", "d", "f"]
+
+[preset.osu-mania-7k]
+description = "osu!mania 7K"
+keys = ["s", "d", "f", "space", "j", "k", "l"]
+```
+
+- Change the `preset = "..."` line at the top to switch which preset is active.
+- Add your own `[preset.<name>]` block with whatever keys you want.
+- **Save the file** — the octopus picks up the change live, no restart needed.
+- Or right-click the octopus → **Preset → \<name\>** to switch from the menu.
+
+The number of lanes is just `len(keys)` — between **4** and **8**. Mix and match letters, digits, arrow keys, `space`, `shift`, `ctrl`, `alt`, `enter`, `tab`, or symbols like `;` `,` `.` `/`.
+
+Out of the box, `presets.toml` ships with: **guitar-4k**, **guitar-5k**, **osu-mania-4k/5k/6k/7k**, **stepmania-4k**, **fnf-4k**, **dance-8k**.
+
+> Lookup order: `~/.jamproject/presets.toml` (per-user override) wins over the file shipped next to `octopus.py`. Right-click → **Preset → Abrir presets.toml…** opens whichever is active in your OS's default editor.
 
 ## 🪟 Controls
 
@@ -95,7 +111,7 @@ Switch lane count from the **right-click menu**. Custom key bindings can be set 
 | Toggle KPS pill | Right-click → **Mostrar KPS** |
 | Close | Right-click → **Fechar** *(also via the close button in your taskbar)* |
 
-Window position, size, lane count, and KPS visibility persist across runs in `~/.jam-legend/octopus-desktop.json`.
+Window position, size, lane count, and KPS visibility persist across runs in `~/.jamproject/octopus-desktop.json`.
 
 ## 📹 Using with OBS
 
@@ -159,10 +175,10 @@ A future version may speak to the web app over a local websocket so the desktop 
 
 ## 🗺️ Roadmap
 
-- [x] **Phase 1 — MVP** — PyQt6 frameless transparent window, global keyboard via pynput, 8 mood states, kraken @ 100 combo, lane heat, draggable + resizable, config persistence
+- [x] **Phase 1 — MVP** — PyQt6 frameless transparent window, global keyboard via pynput, mood states, draggable + resizable, presets.toml-driven keybindings, config persistence
 - [ ] **Phase 2 — Distribution** — PyInstaller release pipeline (Win/Linux/macOS), GitHub Releases auto-upload, code-sign Windows binary
 - [ ] **Phase 3 — Polish** — system tray icon, custom keybinding GUI (instead of hand-editing JSON), preset themes, optional chroma-key background for OBS on macOS
-- [ ] **Phase 4 — Bridge** — local-websocket protocol so `jamproject.net` can drive the desktop octopus with real game state (combo, accuracy, mood from misses)
+- [ ] **Phase 4 — Bridge** — local-websocket protocol so `jamproject.net` can drive the desktop octopus with real game state (accuracy, mood from misses)
 
 ## 📁 Repository layout
 
