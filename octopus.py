@@ -8,10 +8,13 @@ Run:
     pip install -r requirements.txt
     python octopus.py
 
+    (ou use run.bat / run.sh — faz tudo automático)
+
 Controles:
   - Arrastar: clique-esquerdo + drag em qualquer área
   - Resize: drag no canto inferior-direito (mantém aspect ratio 200:240)
   - Menu: clique-direito
+  - Configurar teclas: clique-direito → Configurar Teclas…
   - Config: salva em ~/.jamproject/octopus-desktop.json
 """
 
@@ -26,9 +29,25 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from PyQt6.QtCore import QPointF, QRectF, Qt, QTimer
+from PyQt6.QtCore import QPointF, QRectF, QSize, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QAction, QBrush, QColor, QFont, QGuiApplication, QPainter, QPainterPath, QPen
-from PyQt6.QtWidgets import QApplication, QMenu, QWidget
+from PyQt6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QDialog,
+    QDialogButtonBox,
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMenu,
+    QPushButton,
+    QScrollArea,
+    QSpinBox,
+    QVBoxLayout,
+    QWidget,
+)
 
 try:
     from pynput import keyboard as pkeyboard
@@ -46,10 +65,11 @@ LANE_COLORS = [
     '#8e6bff',
     '#ff5cd6',
     '#26e6c8',
+    '#ff8c42',
 ]
 KPS_WINDOW_MS = 1000
-MIN_LANES = 4
-MAX_LANES = 8
+MIN_LANES = 3
+MAX_LANES = 9
 COMBO_KRAKEN = 100
 KRAKEN_HOLD_MS = 12_000
 LANE_HEAT_WINDOW_MS = 2500
@@ -66,31 +86,28 @@ KEY_AREA_BOTTOM = 224
 KEY_AREA_PAD_X = 8
 
 DEFAULT_KEYS: dict[int, list[str]] = {
+    3: ['a', 's', 'd'],
     4: ['a', 's', 'd', 'f'],
     5: ['a', 's', 'd', 'f', 'g'],
     6: ['a', 's', 'd', 'j', 'k', 'l'],
     7: ['a', 's', 'd', 'space', 'j', 'k', 'l'],
     8: ['a', 's', 'd', 'f', 'j', 'k', 'l', ';'],
+    9: ['a', 's', 'd', 'f', 'space', 'j', 'k', 'l', ';'],
 }
 
 CONFIG_PATH = Path.home() / '.jamproject' / 'octopus-desktop.json'
 
-# presets.toml is the user-facing config. Lookup order:
-#   1. ~/.jamproject/presets.toml    (per-user override)
-#   2. <script_dir>/presets.toml     (shipped with the repo)
 PRESETS_FILENAME = 'presets.toml'
 PRESETS_USER_PATH = Path.home() / '.jamproject' / PRESETS_FILENAME
 
 try:
-    import tomllib  # py 3.11+
-except ModuleNotFoundError:  # pragma: no cover  — py 3.10 fallback
+    import tomllib
+except ModuleNotFoundError:
     import tomli as tomllib  # type: ignore[no-redef]
 
 
 def _script_dir() -> Path:
     if getattr(sys, 'frozen', False):
-        # PyInstaller --onefile: bundled resources live in sys._MEIPASS;
-        # writable space next to the exe is sys.executable.parent.
         meipass = getattr(sys, '_MEIPASS', None)
         if meipass:
             return Path(meipass)
@@ -99,17 +116,12 @@ def _script_dir() -> Path:
 
 
 def _exe_dir() -> Path:
-    """Where the .exe itself lives (writable). Differs from _script_dir() on frozen builds."""
     if getattr(sys, 'frozen', False):
         return Path(sys.executable).parent
     return Path(__file__).resolve().parent
 
 
 def find_presets_file() -> Path | None:
-    # Lookup order:
-    #   1. ~/.jamproject/presets.toml   — user override
-    #   2. <exe_dir>/presets.toml       — sibling of the binary the user can edit
-    #   3. <script_dir>/presets.toml    — repo file (dev) or MEIPASS bundle (frozen)
     for p in (PRESETS_USER_PATH, _exe_dir() / PRESETS_FILENAME, _script_dir() / PRESETS_FILENAME):
         if p.is_file():
             return p
@@ -117,8 +129,6 @@ def find_presets_file() -> Path | None:
 
 
 def ensure_user_presets_file() -> Path | None:
-    """On first run, copy the bundled presets.toml to ~/.jamproject/ so the user has
-    a real, editable file with full inline docs — no need to re-download anything."""
     if PRESETS_USER_PATH.is_file():
         return PRESETS_USER_PATH
     bundled = _script_dir() / PRESETS_FILENAME
@@ -133,7 +143,6 @@ def ensure_user_presets_file() -> Path | None:
 
 
 def load_presets() -> tuple[dict[str, dict], str | None]:
-    """Return (presets_by_name, active_preset_name)."""
     path = find_presets_file()
     if path is None:
         return ({}, None)
@@ -152,10 +161,7 @@ def load_presets() -> tuple[dict[str, dict], str | None]:
             continue
         n = len(keys)
         if n < MIN_LANES or n > MAX_LANES:
-            print(
-                f'[octopus] preset "{name}" has {n} keys — must be {MIN_LANES}-{MAX_LANES}',
-                file=sys.stderr,
-            )
+            print(f'[octopus] preset "{name}" has {n} keys — must be {MIN_LANES}-{MAX_LANES}', file=sys.stderr)
             continue
         presets[name] = {
             'keys': [str(k).lower() for k in keys],
@@ -295,7 +301,7 @@ def compute_keys(n: int, labels: list[str]) -> list[KeyGeom]:
     if n == 0:
         return []
     total_w = VB_W - 2 * KEY_AREA_PAD_X
-    gap = 6 if n <= 4 else 4 if n <= 6 else 3
+    gap = 6 if n <= 4 else 4 if n <= 6 else 3 if n <= 8 else 2
     key_w = (total_w - gap * (n - 1)) / n
     key_h = KEY_AREA_BOTTOM - KEY_AREA_TOP
     keys: list[KeyGeom] = []
@@ -364,6 +370,13 @@ _KEY_LABEL_MAP = {
     'shift': '⇧',
     'ctrl': 'C',
     'alt': 'A',
+    'left': '←',
+    'right': '→',
+    'up': '↑',
+    'down': '↓',
+    'enter': '↵',
+    'tab': '⇥',
+    'backspace': '⌫',
 }
 
 
@@ -374,11 +387,424 @@ def label_for(key: str) -> str:
     return k.upper()[:2]
 
 
+# ─── Key capture helpers ────────────────────────────────────────────────────────
+
+def qt_key_to_str(ev) -> str | None:
+    """Convert Qt key event to octopus key string. Returns None for Escape (cancel)."""
+    key = ev.key()
+    text = ev.text()
+    K = Qt.Key
+    _MAP = {
+        K.Key_Space: 'space',
+        K.Key_Return: 'enter',
+        K.Key_Enter: 'enter',
+        K.Key_Left: 'left',
+        K.Key_Right: 'right',
+        K.Key_Up: 'up',
+        K.Key_Down: 'down',
+        K.Key_Shift: 'shift',
+        K.Key_Control: 'ctrl',
+        K.Key_Alt: 'alt',
+        K.Key_Tab: 'tab',
+        K.Key_Escape: None,
+        K.Key_Backspace: 'backspace',
+        K.Key_Semicolon: ';',
+        K.Key_Comma: ',',
+        K.Key_Period: '.',
+        K.Key_Slash: '/',
+        K.Key_Apostrophe: "'",
+        K.Key_BracketLeft: '[',
+        K.Key_BracketRight: ']',
+        K.Key_Backslash: '\\',
+        K.Key_Minus: '-',
+        K.Key_Equal: '=',
+        K.Key_F1: 'f1', K.Key_F2: 'f2', K.Key_F3: 'f3',
+        K.Key_F4: 'f4', K.Key_F5: 'f5', K.Key_F6: 'f6',
+        K.Key_F7: 'f7', K.Key_F8: 'f8', K.Key_F9: 'f9',
+        K.Key_F10: 'f10', K.Key_F11: 'f11', K.Key_F12: 'f12',
+    }
+    if key in _MAP:
+        return _MAP[key]
+    if text and text.strip() and text.isprintable():
+        return text.lower()
+    return ''  # unknown, skip
+
+
+# ─── Key capture button ─────────────────────────────────────────────────────────
+
+_BTN_IDLE = (
+    'QPushButton {'
+    '  background: #1e1e2a; color: #ffffff;'
+    '  border: 1px solid #3a3a50; border-radius: 4px;'
+    '  padding: 3px 8px; min-width: 68px; font-weight: bold;'
+    '}'
+    'QPushButton:hover { background: #2a2a3e; }'
+)
+_BTN_WAIT = (
+    'QPushButton {'
+    '  background: #2a2a1e; color: #ffd23d;'
+    '  border: 1px solid #ffd23d; border-radius: 4px;'
+    '  padding: 3px 8px; min-width: 68px; font-weight: bold;'
+    '}'
+)
+_BTN_EMPTY = (
+    'QPushButton {'
+    '  background: #111118; color: #555566;'
+    '  border: 1px dashed #3a3a50; border-radius: 4px;'
+    '  padding: 3px 8px; min-width: 68px;'
+    '}'
+    'QPushButton:hover { background: #1a1a28; color: #888899; }'
+)
+
+
+class KeyCaptureButton(QPushButton):
+    key_captured = pyqtSignal(str)
+
+    def __init__(self, key: str = '', parent=None) -> None:
+        super().__init__(parent)
+        self._key = key.lower() if key else ''
+        self._capturing = False
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self._refresh()
+        self.clicked.connect(self._start_capture)
+
+    def sizeHint(self) -> QSize:
+        return QSize(72, 28)
+
+    def current_key(self) -> str:
+        return self._key
+
+    def set_key(self, key: str) -> None:
+        self._key = key.lower() if key else ''
+        self._capturing = False
+        with contextlib.suppress(Exception):
+            self.releaseKeyboard()
+        self._refresh()
+
+    def _refresh(self) -> None:
+        if self._capturing:
+            self.setText('⌨ pressione…')
+            self.setStyleSheet(_BTN_WAIT)
+        elif self._key:
+            self.setText(label_for(self._key))
+            self.setStyleSheet(_BTN_IDLE)
+        else:
+            self.setText('— clique —')
+            self.setStyleSheet(_BTN_EMPTY)
+
+    def _start_capture(self) -> None:
+        self._capturing = True
+        self._refresh()
+        self.grabKeyboard()
+
+    def keyPressEvent(self, ev) -> None:
+        if not self._capturing:
+            super().keyPressEvent(ev)
+            return
+        result = qt_key_to_str(ev)
+        if result is None:
+            # Escape — cancel capture, keep old key
+            self._capturing = False
+            with contextlib.suppress(Exception):
+                self.releaseKeyboard()
+            self._refresh()
+            return
+        if result:
+            self._key = result
+            self._capturing = False
+            with contextlib.suppress(Exception):
+                self.releaseKeyboard()
+            self._refresh()
+            self.key_captured.emit(result)
+
+    def focusOutEvent(self, ev) -> None:
+        if self._capturing:
+            self._capturing = False
+            with contextlib.suppress(Exception):
+                self.releaseKeyboard()
+            self._refresh()
+        super().focusOutEvent(ev)
+
+
+# ─── Key setup dialog ───────────────────────────────────────────────────────────
+
+_DIALOG_CSS = """
+QDialog {
+    background: #0e0e18;
+    color: #e0e0f0;
+}
+QLabel {
+    color: #c0c0d8;
+    font-size: 12px;
+}
+QLabel#header {
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: bold;
+}
+QLabel#tip {
+    color: #888899;
+    font-size: 11px;
+}
+QCheckBox {
+    color: #c0c0d8;
+    spacing: 6px;
+}
+QCheckBox::indicator {
+    width: 16px; height: 16px;
+    border: 1px solid #3a3a50;
+    border-radius: 3px;
+    background: #1e1e2a;
+}
+QCheckBox::indicator:checked {
+    background: #3aa8ff;
+    border-color: #3aa8ff;
+}
+QLineEdit {
+    background: #1e1e2a;
+    color: #ffffff;
+    border: 1px solid #3a3a50;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+}
+QLineEdit:focus { border-color: #3aa8ff; }
+QSpinBox {
+    background: #1e1e2a;
+    color: #ffffff;
+    border: 1px solid #3a3a50;
+    border-radius: 4px;
+    padding: 3px 6px;
+    font-size: 13px;
+    min-width: 50px;
+}
+QSpinBox:focus { border-color: #3aa8ff; }
+QSpinBox::up-button, QSpinBox::down-button { width: 18px; }
+QPushButton#savePresetBtn {
+    background: #1e3a1e;
+    color: #43e07a;
+    border: 1px solid #43e07a;
+    border-radius: 4px;
+    padding: 4px 14px;
+    font-size: 12px;
+}
+QPushButton#savePresetBtn:hover { background: #274a27; }
+QDialogButtonBox QPushButton {
+    background: #2a2a3e;
+    color: #ffffff;
+    border: 1px solid #3a3a50;
+    border-radius: 4px;
+    padding: 5px 20px;
+    font-size: 13px;
+    min-width: 80px;
+}
+QDialogButtonBox QPushButton:hover { background: #3a3a50; }
+QScrollArea { border: none; background: transparent; }
+QFrame#sep { color: #2a2a3e; }
+"""
+
+
+class KeySetupDialog(QDialog):
+    def __init__(
+        self,
+        n_lanes: int,
+        keys: list[str],
+        doubles: dict[int, str],
+        presets: dict,
+        parent=None,
+    ) -> None:
+        super().__init__(parent)
+        self.setWindowTitle('🐙 Configurar Teclas')
+        self.setStyleSheet(_DIALOG_CSS)
+        self.setMinimumWidth(500)
+        self.setModal(True)
+
+        self._keys = list(keys)
+        self._doubles = dict(doubles)
+        self._presets = presets
+        self._rows: list[tuple[KeyCaptureButton, QCheckBox, KeyCaptureButton]] = []
+
+        root = QVBoxLayout(self)
+        root.setSpacing(12)
+        root.setContentsMargins(20, 18, 20, 18)
+
+        # Title
+        title = QLabel('Configurar Teclas do Polvo')
+        title.setObjectName('header')
+        root.addWidget(title)
+
+        tip = QLabel('Clique em um botão de tecla e pressione a tecla desejada. ESC cancela.')
+        tip.setObjectName('tip')
+        root.addWidget(tip)
+
+        # Lane count row
+        count_row = QHBoxLayout()
+        count_row.addWidget(QLabel('Número de lanes (3–9):'))
+        self._spin = QSpinBox()
+        self._spin.setRange(MIN_LANES, MAX_LANES)
+        self._spin.setValue(n_lanes)
+        count_row.addWidget(self._spin)
+        count_row.addStretch()
+        root.addLayout(count_row)
+
+        self._add_sep(root)
+
+        # Column headers
+        hdr = QGridLayout()
+        hdr.setSpacing(6)
+        for col, txt in enumerate(['Lane', 'Tecla principal', 'Double (alt)', 'Tecla alt']):
+            lbl = QLabel(txt)
+            lbl.setStyleSheet('font-weight: bold; color: #8888aa; font-size: 11px;')
+            hdr.addWidget(lbl, 0, col)
+        root.addLayout(hdr)
+
+        # Scrollable lane rows
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setMaximumHeight(320)
+        self._lane_container = QWidget()
+        self._lane_container.setStyleSheet('background: transparent;')
+        self._lane_grid = QGridLayout(self._lane_container)
+        self._lane_grid.setSpacing(6)
+        self._lane_grid.setContentsMargins(0, 0, 0, 0)
+        scroll.setWidget(self._lane_container)
+        root.addWidget(scroll)
+
+        self._rebuild_rows(n_lanes)
+        self._spin.valueChanged.connect(self._rebuild_rows)
+
+        self._add_sep(root)
+
+        # Preset save row
+        preset_row = QHBoxLayout()
+        preset_row.addWidget(QLabel('Salvar como preset:'))
+        self._preset_name = QLineEdit()
+        self._preset_name.setPlaceholderText('ex: meu-setup-4k')
+        preset_row.addWidget(self._preset_name, 1)
+        save_btn = QPushButton('Salvar')
+        save_btn.setObjectName('savePresetBtn')
+        save_btn.clicked.connect(self._save_preset)
+        preset_row.addWidget(save_btn)
+        root.addLayout(preset_row)
+
+        self._add_sep(root)
+
+        # OK / Cancel
+        btns = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        ok_btn = btns.button(QDialogButtonBox.StandardButton.Ok)
+        ok_btn.setText('Aplicar')
+        ok_btn.setStyleSheet('background: #1a3a5a; border-color: #3aa8ff; color: #3aa8ff;')
+        btns.button(QDialogButtonBox.StandardButton.Cancel).setText('Cancelar')
+        btns.accepted.connect(self.accept)
+        btns.rejected.connect(self.reject)
+        root.addWidget(btns)
+
+    def _add_sep(self, layout: QVBoxLayout) -> None:
+        sep = QFrame()
+        sep.setObjectName('sep')
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setStyleSheet('background: #2a2a3e; max-height: 1px;')
+        layout.addWidget(sep)
+
+    def _rebuild_rows(self, n: int) -> None:
+        while len(self._keys) < n:
+            default_n = min(DEFAULT_KEYS.keys(), key=lambda x: abs(x - n))
+            fallback = DEFAULT_KEYS[default_n]
+            idx = len(self._keys)
+            self._keys.append(fallback[idx] if idx < len(fallback) else '')
+
+        self._rows.clear()
+        while self._lane_grid.count():
+            item = self._lane_grid.takeAt(0)
+            if item and item.widget():
+                item.widget().deleteLater()
+
+        for i in range(n):
+            color = LANE_COLORS[i % len(LANE_COLORS)]
+
+            swatch = QLabel(f' {i + 1} ')
+            swatch.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            swatch.setStyleSheet(
+                f'background: {color}; border-radius: 3px;'
+                f' color: #000000; font-weight: bold; min-width: 28px; max-width: 28px;'
+            )
+            swatch.setFixedWidth(28)
+
+            key = self._keys[i] if i < len(self._keys) else ''
+            alt_key = self._doubles.get(i, '')
+
+            primary_btn = KeyCaptureButton(key)
+            double_chk = QCheckBox('ativo')
+            double_chk.setChecked(bool(alt_key))
+            alt_btn = KeyCaptureButton(alt_key)
+            alt_btn.setEnabled(bool(alt_key))
+
+            double_chk.toggled.connect(
+                lambda checked, b=alt_btn: (b.setEnabled(checked), b.set_key(b.current_key()) if checked else b.set_key(''))
+            )
+
+            self._lane_grid.addWidget(swatch, i, 0, Qt.AlignmentFlag.AlignVCenter)
+            self._lane_grid.addWidget(primary_btn, i, 1)
+            self._lane_grid.addWidget(double_chk, i, 2, Qt.AlignmentFlag.AlignCenter)
+            self._lane_grid.addWidget(alt_btn, i, 3)
+
+            self._rows.append((primary_btn, double_chk, alt_btn))
+
+    def get_result(self) -> tuple[int, list[str], dict[int, str]]:
+        n = self._spin.value()
+        keys = [row[0].current_key() for row in self._rows[:n]]
+        doubles: dict[int, str] = {}
+        for i, (_, chk, alt) in enumerate(self._rows[:n]):
+            if chk.isChecked() and alt.current_key():
+                doubles[i] = alt.current_key()
+        return n, keys, doubles
+
+    def _save_preset(self) -> None:
+        name = self._preset_name.text().strip().replace(' ', '-')
+        if not name:
+            return
+        n, keys, _ = self.get_result()
+        valid_keys = [k for k in keys if k]
+        if len(valid_keys) < MIN_LANES:
+            return
+        path = PRESETS_USER_PATH
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            existing = path.read_text(encoding='utf-8') if path.is_file() else ''
+            keys_toml = ', '.join(f'"{k}"' for k in valid_keys)
+            block = (
+                f'\n[preset.{name}]\n'
+                f'description = "Preset personalizado — {len(valid_keys)} lanes"\n'
+                f'keys = [{keys_toml}]\n'
+            )
+            if f'[preset.{name}]' in existing:
+                import re
+                existing = re.sub(
+                    rf'\[preset\.{re.escape(name)}\][^\[]*',
+                    block.lstrip('\n'),
+                    existing,
+                )
+                path.write_text(existing, encoding='utf-8')
+            else:
+                path.write_text(existing + block, encoding='utf-8')
+            self._preset_name.setStyleSheet('border-color: #43e07a;')
+            QTimer.singleShot(1200, lambda: self._preset_name.setStyleSheet(''))
+        except OSError:
+            pass
+
+
+# ─── Main widget ────────────────────────────────────────────────────────────────
+
 class OctopusWidget(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool
+            Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.Tool
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowTitle('Octopus')
@@ -395,6 +821,12 @@ class OctopusWidget(QWidget):
         self.n_lanes: int = int(self.cfg.get('lanes', 4))
         self.tint = QColor(self.cfg.get('tint', '#ffffff'))
         self.show_kps = bool(self.cfg.get('show_kps', True))
+
+        self.doubles: dict[int, str] = {}
+        raw_doubles = self.cfg.get('doubles') or {}
+        for k, v in raw_doubles.items():
+            with contextlib.suppress(Exception):
+                self.doubles[int(k)] = str(v).lower()
 
         self._drag_start: QPointF | None = None
         self._drag_kind: str | None = None
@@ -448,7 +880,9 @@ class OctopusWidget(QWidget):
             return
         self.presets = presets
         chosen = (
-            prev_preset if prev_preset in presets else (active if active in presets else next(iter(presets)))
+            prev_preset
+            if prev_preset in presets
+            else (active if active in presets else next(iter(presets)))
         )
         self._apply_preset(chosen, persist=False)
 
@@ -461,6 +895,7 @@ class OctopusWidget(QWidget):
         self.cfg['keys'] = keys
         self.cfg['lanes'] = len(keys)
         self.n_lanes = len(keys)
+        self.doubles = {}
         self.state = State()
         if persist:
             self._save_config()
@@ -495,8 +930,11 @@ class OctopusWidget(QWidget):
                 'y': self.y(),
                 'w': self.width(),
                 'h': self.height(),
-                'keys': self.cfg.get('keys') or DEFAULT_KEYS[self.n_lanes],
+                'keys': self.cfg.get('keys') or DEFAULT_KEYS.get(self.n_lanes, DEFAULT_KEYS[4]),
+                'doubles': {str(k): v for k, v in self.doubles.items()},
             }
+            if self.cfg.get('preset'):
+                data['preset'] = self.cfg['preset']
             CONFIG_PATH.write_text(json.dumps(data, indent=2), encoding='utf-8')
         except Exception:
             pass
@@ -506,7 +944,11 @@ class OctopusWidget(QWidget):
         return [str(k).lower() for k in keys[: self.n_lanes]]
 
     def _key_map(self) -> dict[str, int]:
-        return {k: i for i, k in enumerate(self._key_list())}
+        result = {k: i for i, k in enumerate(self._key_list())}
+        for lane, alt_key in self.doubles.items():
+            if alt_key and lane < self.n_lanes and alt_key not in result:
+                result[alt_key] = lane
+        return result
 
     @staticmethod
     def _key_str(key) -> str | None:
@@ -757,7 +1199,7 @@ class OctopusWidget(QWidget):
         p.setBrush(QBrush(fill))
         p.drawRoundedRect(QRectF(k.x, y, k.w, h), 3, 3)
         p.setPen(QColor('#ffffff') if pressed else QColor('#9aa0aa'))
-        font_size = 10 if self.n_lanes <= 4 else 8 if self.n_lanes <= 6 else 7
+        font_size = 10 if self.n_lanes <= 4 else 8 if self.n_lanes <= 6 else 6
         f = QFont('Segoe UI', font_size)
         f.setBold(True)
         p.setFont(f)
@@ -832,6 +1274,20 @@ class OctopusWidget(QWidget):
 
     def _show_menu(self, pos) -> None:
         m = QMenu(self)
+        m.setStyleSheet("""
+            QMenu {
+                background: #12121a; color: #e0e0f0;
+                border: 1px solid #2a2a3e;
+                font-size: 13px;
+            }
+            QMenu::item:selected { background: #2a2a4a; }
+            QMenu::separator { height: 1px; background: #2a2a3e; margin: 3px 0; }
+        """)
+
+        a_setup = QAction('🎹  Configurar Teclas…', self)
+        a_setup.triggered.connect(self._open_key_setup)
+        m.addAction(a_setup)
+        m.addSeparator()
 
         if self.presets:
             preset_menu = m.addMenu('Preset')
@@ -852,14 +1308,6 @@ class OctopusWidget(QWidget):
             preset_menu.addAction(a_reload)
             m.addSeparator()
 
-        lanes_menu = m.addMenu('Quick lane count')
-        for n in (4, 5, 6, 7, 8):
-            label = f'{n} lanes' + ('  ✓' if n == self.n_lanes else '')
-            a = QAction(label, self)
-            a.triggered.connect(lambda _checked=False, nn=n: self._set_lanes(nn))
-            lanes_menu.addAction(a)
-        m.addSeparator()
-
         a_kps = QAction('Mostrar KPS' + ('  ✓' if self.show_kps else ''), self)
         a_kps.triggered.connect(self._toggle_kps)
         m.addAction(a_kps)
@@ -871,6 +1319,39 @@ class OctopusWidget(QWidget):
         a_quit.triggered.connect(self.close)
         m.addAction(a_quit)
         m.exec(pos)
+
+    def _open_key_setup(self) -> None:
+        dlg = KeySetupDialog(
+            n_lanes=self.n_lanes,
+            keys=self._key_list(),
+            doubles=self.doubles,
+            presets=self.presets,
+            parent=self,
+        )
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        n, keys, doubles = dlg.get_result()
+        valid_keys = [k for k in keys if k]
+        if len(valid_keys) < n:
+            default_n = min(DEFAULT_KEYS.keys(), key=lambda x: abs(x - n))
+            defaults = DEFAULT_KEYS[default_n]
+            idx = len(valid_keys)
+            for dk in defaults:
+                if len(valid_keys) >= n:
+                    break
+                if dk not in valid_keys:
+                    valid_keys.append(dk)
+                    idx += 1
+        self.n_lanes = n
+        self.doubles = doubles
+        self.cfg['keys'] = valid_keys[:n]
+        self.cfg['lanes'] = n
+        self.cfg.pop('preset', None)
+        self.active_preset = None
+        self.state = State()
+        self._save_config()
+        self.update()
+        self._force_reload_presets()
 
     def _open_presets_file(self) -> None:
         path = self._presets_path or (_script_dir() / PRESETS_FILENAME)
@@ -891,12 +1372,16 @@ class OctopusWidget(QWidget):
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
 
     def _force_reload_presets(self) -> None:
-        self._presets_mtime = 0.0  # force the next tick to reload
+        self._presets_mtime = 0.0
         self._maybe_reload_presets()
 
     def _set_lanes(self, n: int) -> None:
         self.n_lanes = max(MIN_LANES, min(MAX_LANES, n))
-        self.cfg['keys'] = DEFAULT_KEYS[self.n_lanes]
+        self.doubles = {}
+        self.cfg['keys'] = DEFAULT_KEYS.get(
+            self.n_lanes,
+            DEFAULT_KEYS[min(DEFAULT_KEYS.keys(), key=lambda x: abs(x - self.n_lanes))],
+        )
         self.cfg.pop('preset', None)
         self.active_preset = None
         self.state = State()
