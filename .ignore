@@ -1,0 +1,21 @@
+# .ignore do repo (honrado por ripgrep/rtk grep/fd, IGNORADO pelo git).
+#
+# `rtk grep` nao le .gitignore — so .ignore. Sem isto, busca varre node_modules
+# (web/ 1.5G + api/ 1.1G) e worktrees de agente inteiros, enchendo o cap de 200
+# resultados do rtk com lixo e escondendo o hit real. Mesmo achado/fix do
+# canary-browser-spike (2026-08-10, ver docs/gotchas.md la).
+
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+.claude/worktrees/
+*.tsbuildinfo
+.git/
+*.log
+.venv/
+__pycache__/
+.playwright-mcp/
+*.egg-info/
