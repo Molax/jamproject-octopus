@@ -19,3 +19,15 @@ coverage/
 __pycache__/
 .playwright-mcp/
 *.egg-info/
+
+# --- completado pelo template da máquina (~/.claude/templates/ignore) ---
+.angular/
+.nuxt/
+target/
+generated/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.gradle/
+.vm-run/
